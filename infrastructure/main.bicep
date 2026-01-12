@@ -3,7 +3,7 @@ param appName string = 'soccertrainer'
 param environment string = 'dev'
 
 var uniqueSuffix = uniqueString(resourceGroup().id)
-var storageName = '${appName}${environment}${uniqueSuffix}'
+var storageName = 'st${substring(uniqueSuffix, 0, 10)}'
 var functionAppName = '${appName}-api-${environment}-${uniqueSuffix}'
 var appServicePlanName = '${appName}-plan-${environment}'
 
@@ -74,7 +74,7 @@ resource functionApp 'Microsoft.Web/sites@2021-03-01' = {
 // Enable Easy Auth (App Service Authentication)
 resource authSettings 'Microsoft.Web/sites/config@2021-03-01' = {
   parent: functionApp
-  name: 'authsettingsv2'
+  name: 'authsettingsV2'
   properties: {
     platform: {
       enabled: true
