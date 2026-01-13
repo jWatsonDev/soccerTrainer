@@ -107,22 +107,45 @@ soccerTrainer/
 └── readme.md                    # This file
 ```
 
-## 🔐 Authentication (Easy Auth)
+## 🔐 Authentication (MSAL with Azure AD)
 
-### Setup Azure AD
+### ✅ Implementation Status
 
-1. **Register App in Azure AD:**
-**Status:** Infrastructure configured, implementation pending
+Authentication is **fully configured** with:
+- ✅ Azure AD App Registration (`soccertrainer-api`)
+- ✅ MSAL Angular integration for user login
+- ✅ Support for Microsoft organizational and personal accounts
+- ✅ Token-based API access with MSAL interceptor
 
-### Planned Setup
+### How It Works
 
-Authentication will use Azure AD with Easy Auth. The infrastructure is ready in `infrastructure/main.bicep`, but requires:
+1. User clicks login → redirected to Microsoft login page
+2. After authentication → token stored in browser localStorage
+3. MSAL interceptor automatically adds Bearer token to API requests
+4. API accepts requests with valid tokens
 
-1. Azure AD App Registration
-2. Client ID configuration
-3. MSAL integration in Angular (packages already installed)
+### Configuration
 
-See `auth/README.md` for detailed setup instructions when ready to implement.
+**For Local Development:**
+The MSAL authority is set to `/common` to allow both org and personal accounts:
+```typescript
+authority: 'https://login.microsoftonline.com/common'
+```
+
+**For Production (Tenant-Specific):**
+Change to your tenant ID for organization-only access:
+```typescript
+authority: 'https://login.microsoftonline.com/{tenant-id}'
+```
+
+### Deployment Details
+
+- **App Registration ID:** `5d444d98-ede8-4d3c-8e52-b8c000f9f8a2`
+- **Scope:** `user.read`
+- **Redirect URIs:** 
+  - SPA: `https://stpvkeip5una.z13.web.core.windows.net`, `http://localhost:4200`
+  - Web: `https://soccertrainer-api-dev-pvkeip5unaxek.azurewebsites.net/.auth/login/aad/callback`
+
 ### Base URL (Local)
 ```
 http://localhost:7071/api
@@ -160,32 +183,63 @@ curl -X POST http://localhost:7071/api/training \
 
 ## ☁️ Azure Deployment
 
-### Prerequisites
-- Azure Resource Group: `az group create --name soccertrainer-rg --location eastus`
-- Storage Account for Function App code (optional, for more control)
+### ✅ Production Deployment (LIVE)
 
-### Deploy Infrastructure
+The application is **live in production** at:
+- **UI:** https://stpvkeip5una.z13.web.core.windows.net
+- **API:** https://soccertrainer-api-dev-pvkeip5unaxek.azurewebsites.net
+
+### Deployed Resources
+
+| Resource | Name | Type |
+|----------|------|------|
+| **Function App** | soccertrainer-api-dev-pvkeip5unaxek | Azure Functions (Consumption) |
+| **Storage Account** | stpvkeip5una | Azure Storage (Blob + Static Web) |
+| **App Service Plan** | soccertrainer-plan-dev | Linux Consumption Plan |
+| **Resource Group** | soccertrainer-rg | eastus |
+
+### How to Deploy Updates
+
+**1. Backend (API):**
+```bash
+cd api
+func azure functionapp publish soccertrainer-api-dev-pvkeip5unaxek
+```
+
+**2. Frontend (UI):**
+```bash
+cd ui
+npm run build
+az storage blob upload-batch \
+  --account-name stpvkeip5una \
+  --destination '$web' \
+  --source dist/ui/browser \
+  --overwrite
+```
+
+### Infrastructure Deployment
+
+To redeploy/modify infrastructure:
 
 ```bash
 cd infrastructure
 
+# Validate Bicep template
+az bicep validate --file main.bicep
+
+# Deploy changes
 az deployment group create \
   --resource-group soccertrainer-rg \
   --template-file main.bicep \
-  --parameters parameters.json
-
-# Retrieve outputs
-az deployment group show \
-  --resource-group soccertrainer-rg \
-  --name main \
-**Status:** Infrastructure templates ready, not yet deployed
+  --parameters parameters.json \
+  --parameters location=eastus
+```
 
 ### Prerequisites
+- Azure Resource Group: `az group create --name soccertrainer-rg --location eastus`
 - Azure CLI: `az login`
-- Azure subscription
-- Resource group created
 
-See `infrastructure/README.md` for deployment instructions.🛠️ Development Workflow
+See `infrastructure/README.md` for detailed infrastructure documentation.🛠️ Development Workflow
 
 ### Local Development
 1. Start the API (`func start`)

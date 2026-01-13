@@ -1,6 +1,14 @@
 param location string = resourceGroup().location
 param appName string = 'soccertrainer'
 param environment string = 'dev'
+@description('Azure AD Tenant ID (GUID).')
+param tenantId string = ''
+@description('Azure AD app (client) ID registered for Easy Auth.')
+param aadClientId string = ''
+@description('Client secret value for the Azure AD app. Used via app setting MICROSOFT_PROVIDER_AUTHENTICATION_SECRET.')
+param aadClientSecret string = ''
+@description('Require authentication for all requests (set true after frontend wiring).')
+param requireAuthentication bool = false
 
 var uniqueSuffix = uniqueString(resourceGroup().id)
 var storageName = 'st${substring(uniqueSuffix, 0, 10)}'
@@ -63,6 +71,10 @@ resource functionApp 'Microsoft.Web/sites@2021-03-01' = {
           name: 'WEBSITE_RUN_FROM_PACKAGE'
           value: '1'
         }
+        {
+          name: 'MICROSOFT_PROVIDER_AUTHENTICATION_SECRET'
+          value: aadClientSecret
+        }
       ]
       linuxFxVersion: 'PYTHON|3.11'
       ftpsState: 'FtpsOnly'
@@ -80,9 +92,9 @@ resource authSettings 'Microsoft.Web/sites/config@2021-03-01' = {
       enabled: true
     }
     globalValidation: {
-      requireAuthentication: false
-      unauthenticatedClientAction: 'AllowAnonymous'
-      redirectToProvider: ''
+      requireAuthentication: requireAuthentication
+      unauthenticatedClientAction: requireAuthentication ? 'RedirectToLoginPage' : 'AllowAnonymous'
+      redirectToProvider: requireAuthentication ? 'AzureActiveDirectory' : ''
     }
     httpSettings: {
       forwardProxyConvention: 'NoProxy'
@@ -107,13 +119,16 @@ resource authSettings 'Microsoft.Web/sites/config@2021-03-01' = {
       azureActiveDirectory: {
         enabled: true
         registration: {
-          openIdIssuer: ''
-          clientId: ''
+          openIdIssuer: tenantId == '' ? '' : 'https://login.microsoftonline.com/${tenantId}/v2.0'
+          clientId: aadClientId
           clientSecretSettingName: 'MICROSOFT_PROVIDER_AUTHENTICATION_SECRET'
         }
         validation: {
           jwtClaimChecks: {}
-          allowedAudiences: []
+          allowedAudiences: [
+            aadClientId
+            aadClientId == '' ? '' : 'api://${aadClientId}'
+          ]
           defaultAuthorizationPolicy: 'AllowAnonymousUsers'
         }
         login: {
@@ -136,6 +151,7 @@ resource cors 'Microsoft.Web/sites/config@2021-03-01' = {
       allowedOrigins: [
         'http://localhost:4200'
         'http://localhost:3000'
+        'https://stpvkeip5una.z13.web.core.windows.net'
       ]
       supportCredentials: true
     }

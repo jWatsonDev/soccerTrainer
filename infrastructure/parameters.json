@@ -10,6 +10,18 @@
     },
     "environment": {
       "value": "dev"
+    },
+    "tenantId": {
+      "value": "8cfb87f7-1988-4b57-a8e7-34e0ac664270"
+    },
+    "aadClientId": {
+      "value": "5d444d98-ede8-4d3c-8e52-b8c000f9f8a2"
+    },
+    "aadClientSecret": {
+      "value": "YOUR_CLIENT_SECRET_HERE"
+    },
+    "requireAuthentication": {
+      "value": false
     }
   }
 }
