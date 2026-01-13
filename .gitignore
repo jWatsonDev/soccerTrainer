@@ -76,6 +76,8 @@ Thumbs.db
 
 # Azure
 local.settings.json
+infrastructure/parameters.json
+DEPLOYMENT_SUMMARY.md
 
 # Build outputs
 /dist
